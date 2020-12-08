@@ -8,9 +8,15 @@ from dash import callback_context
 from dash.dependencies import Output, Input
 import plotly.express as px
 from plotly.subplots import make_subplots
+<<<<<<< Updated upstream
 
 external_stylesheets = [dbc.themes.DARKLY]
 
+=======
+
+external_stylesheets = [dbc.themes.DARKLY]
+
+>>>>>>> Stashed changes
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 # assume you have a "long-form" data frame
@@ -132,6 +138,7 @@ app.layout = html.Div(children=[
             ), dcc.Graph(
                 id="airport_map"
             ),
+<<<<<<< Updated upstream
             html.H1("top 20 cities"),
             dcc.Graph(
                 id = "analysis"
@@ -146,6 +153,10 @@ app.layout = html.Div(children=[
         ),color="secondary",inverse=True,outline=True)
     ])
 ])
+=======
+    ])
+])])])
+>>>>>>> Stashed changes
 
 
 @app.callback(
@@ -347,6 +358,7 @@ def update_airport_map(v):
             paper_bgcolor='rgb(10,10,10)'
         )
     return fig
+<<<<<<< Updated upstream
 
 @app.callback(
     Output("analysis", "figure"),
@@ -372,6 +384,8 @@ def update_analysis(v):
         paper_bgcolor='rgb(10,10,10)',
         plot_bgcolor = 'rgb(10,10,10)'
     )
+=======
+>>>>>>> Stashed changes
 
     return fig
 
