@@ -203,12 +203,18 @@ def update_infobox(selectedData,date):
     #没有选定数据的时候就显示雷达图
     if not selectedData:
         obj = dcc.Graph(
-            figure = px.line_polar(
-                data,
-                r= "ON_TIME_RATE",
-                theta="DEPARTURE_TIME",
-                line_close=True
-            )
+            # figure = px.line_polar(
+            #     data,
+            #     r= "ON_TIME_RATE",
+            #     theta="DEPARTURE_TIME",
+            #     line_close=True
+            # )
+            figure= px.sunburst(data,path=["TIME_SEGMENT","DEPARTURE_TIME"],
+                                values="TOTAL", color_continuous_scale="RdBu",
+                                color="ON_TIME_RATE",
+                                color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
+
+                                )
         )
         return obj
 
@@ -225,10 +231,11 @@ def update_infobox(selectedData,date):
         df["destination"] = destinations
         df["nums"] = destinations_num
         df = df.nlargest(5,"nums")
-        table_header = [
-            html.Thead(html.Tr([html.Th("Destination"),html.Th("Flights_sum")]))
-        ]
-        table_body = [html.Tbody([html.Tr([html.Td(row["destination"]),html.Td(row["nums"])]) for idx, row in df.iterrows()])]
+        df["nums_ratio"] = df["nums"].map(lambda x: x * 100 / sum(destinations_num))
+        # table_header = [
+        #     html.Thead(html.Tr([html.Th("Destination"),html.Th("Flights_sum")]))
+        # ]
+        # table_body = [html.Tbody([html.Tr([html.Td(row["destination"]),html.Td(row["nums"])]) for idx, row in df.iterrows()])]
         total_flights = sum(destinations_num)
 
         def update_num_ratio(*args):
