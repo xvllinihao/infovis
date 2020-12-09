@@ -5,6 +5,7 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import numpy as np
 import plotly.graph_objects as go
 from dash import callback_context
 from dash.dependencies import Output, Input, State
@@ -230,13 +231,80 @@ def update_infobox(selectedData,date):
         table_body = [html.Tbody([html.Tr([html.Td(row["destination"]),html.Td(row["nums"])]) for idx, row in df.iterrows()])]
         total_flights = sum(destinations_num)
 
+        def update_num_ratio(*args):
+
+            y_nums_ratio = list(df["nums_ratio"])
+            x = list(df["destination"])
+            y_nums_ratio.reverse()
+            x.reverse()
+
+            # Creating two subplots
+            fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], shared_xaxes=True,
+                                shared_yaxes=False, vertical_spacing=0.01)
+
+            fig.append_trace(go.Bar(
+                x=y_nums_ratio,
+                y=x,
+                marker=dict(
+                    color='rgba(67, 56, 209, 0.7)',
+                    line=dict(
+                        color='rgba(67, 56, 209, 1.0)',
+                        width=1),
+                ),
+                name='Ratio of flights to hottest destination',
+                orientation='h',
+                width=0.3
+            ), 1, 1)
+
+            fig.update_layout(
+                title='Ratio of flights to hottest destination and delay time distribution',
+                yaxis=dict(
+                    showgrid=False,
+                    showline=False,
+                    showticklabels=True,
+                    domain=[0, 0.8],
+                ),
+                xaxis=dict(
+                    zeroline=False,
+                    showline=False,
+                    showticklabels=False,
+                    showgrid=True,
+                    domain=[0, 0.22],
+                ),
+                showlegend=True,
+                legend=dict(x=0.029, y=1.038, font_size=10),
+                margin=dict(l=30, r=20, t=50, b=70),
+                paper_bgcolor='rgb(255,255,255)',
+                plot_bgcolor='rgb(255, 255, 255)',
+            )
+
+            annotations = []
+
+            y_s = np.round(y_nums_ratio, decimals=2)
+
+            # Adding labels
+            for yd, xd in zip(y_s, x):
+
+                # labeling the bar num ratio
+                annotations.append(dict(xref='x1', yref='y1',
+                                        y=xd, x=yd + 24,
+                                        text=str(yd) + '%',
+                                        font=dict(family='Arial', size=12,
+                                                  color='rgb(67, 56, 209)'),
+                                        showarrow=False))
+
+            fig.update_layout(annotations=annotations)
+
+            return fig
+
+
         obj = dbc.Card(children=[
-            html.H4("IATA_CODE: {}".format(airport)),
-            html.H6("AIRPORT_NAME: {}".format(infos["AIRPORT"].values[0])),
-            html.H6("CITY_NAMR: {}".format(infos["CITY"].values[0])),
-            html.H6("TOTAL_FILGHTS: {}".format(total_flights)),
-            html.H6("Hottest Destinations"),
-            dbc.Table(table_header+table_body,bordered=True)
+            html.H6("Airport Name: {}".format(infos["AIRPORT"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
+            html.H6("City Name: {}".format(infos["CITY"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
+            html.H6("Total Flights of Today: {}".format(total_flights), style={'fontFamily': 'Arial',
+                                                                               'color':'rgb(54, 76, 117)'}),
+            #dbc.Table(table_header+table_body,bordered=True)
+            dcc.Graph(figure=update_num_ratio())
             ]
         )
         return obj
