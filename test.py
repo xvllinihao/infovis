@@ -20,8 +20,8 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 airports = pd.read_json("data/processed_airports.json")
 airports_info = pd.read_csv("data/airports.csv")
 on_time_list = pd.read_json("data/on_time_list.json")
-numFlight = pd.read_csv("data/num_flights_per_day.csv")
-delay = pd.read_csv("data/delay_per_day.csv")
+numFlight = pd.read_csv("data/total.csv")
+delay = pd.read_csv("data/delay.csv")
 overview_destination = pd.read_json("data/overview_destinations.json")
 
 
@@ -29,10 +29,25 @@ location_dic = {}
 for idx,row in airports_info.iterrows():
     location_dic[row["IATA_CODE"]] = {"lat":row["LATITUDE"], "lon":row["LONGITUDE"]}
 
-app.layout = html.Div(children=[
-    dbc.Card(children=[
-        dbc.Row(
-            children=[
+tab1_content = dbc.Card(
+            [
+             dbc.CardBody(
+                 children=[
+                     # dcc.Checklist(
+                     #     id="DOF",
+                     #     options=[{"label": "# Total Flights", "value": "Total"},
+                     #              {"label": "# Delayed Flights", "value": "Delayed"}
+                     #              ],
+                     #     value=["Total", "Delayed"],
+                     #     style={'padding-left':'25%', 'padding-right':'25%'},
+                     #     labelStyle={'display': 'inline',"padding": "5px"}
+                     # ),
+                     dcc.Graph(id="line-chart")
+                 ]
+             )],
+        )
+tab2_content = dbc.Card(children=[
+    dbc.Row(children=[
                 dbc.Col(
                     children=[
                     dbc.Row(children=[
@@ -41,24 +56,57 @@ app.layout = html.Div(children=[
                             id='date_menu',
                             options=[{'label': pd.to_datetime(timestamp).strftime('%Y.%m.%d'), 'value': timestamp} for
                                      timestamp in airports["DATE"].unique()],
-                            placeholder="select a day to find detail information"
-                            # value=airports["DATE"].unique()[0],
+                            #placeholder="select a date to find detailed information"
+                            value=airports["DATE"].unique()[0],
                         ),width=8
                         ),
-                        dbc.Col(
-                        dcc.Dropdown(
-                            id='airport_menu',
-                            options=[{'label': IATA, 'value': IATA} for IATA in airports_info["IATA_CODE"]],
-                            placeholder="select an airport to find detail information"
-                        ),width=4
-                        )
                     ]
                     ),
-                    dcc.Graph(
-                        id="map",
+                    dbc.Col(
+                            id='info_box'
                     ), ]),
+            ])
+])
+tab_height="1vh"
+tabs = dbc.Tabs(
+    #style={"padding-left":"5px"},
+    children=[
+    dbc.Tab(tab1_content, label="Overview"),
+    dbc.Tab(tab2_content, label="More Info"),])
+
+app.title = "Traveling in Christmas"
+app.layout = html.Div(children=[
+    dbc.Card(children=[
+        html.H1(children='Traveling in Christmas',style={'padding-left':'35%', 'padding-right':'25%'}),
+        dbc.Row(
+            children=[
                 dbc.Col(
-                    id='info_box'
+                    style={'padding-left':'3%', 'padding-right':'3%', 'padding-top':'1%'},
+                    children=[
+                    dbc.Card(
+                        style={"height":"591px"},
+                        children=[
+                        dbc.CardHeader("Map"),
+                        dbc.CardBody(
+                            children=[
+                            dbc.Row(children=[
+                                dbc.Col(
+                                    dcc.Dropdown(
+                                        id='airport_menu',
+                                        options=[{'label': IATA, 'value': IATA} for IATA in airports_info["IATA_CODE"]],
+                                        placeholder="select an airport to find detail information"
+                                    ),
+                                    width=8
+                                    ),
+                            ]
+                       ),
+                        dcc.Graph(id="map"),
+                        ])
+                    ])
+                     ]),
+                dbc.Col(
+                    style={'padding-left':'1%', 'padding-right':'3%', 'padding-top':'1%', "height":"591px"},
+                    children=[tabs]
                 )
             ]
         ),
@@ -329,103 +377,110 @@ def update_infobox(selectedData,date, inputData):
                 ]
             )
             return obj
-    else:
-        obj = dbc.Card(
-            children=[
-                dcc.Checklist(
-                    id = "DOF",
-                    options=[{"label":"flight","value":"flights"},
-                             {"label":"delay","value":"delay"}
-                             ],
-                    value=["delay","flights"],
-                    labelStyle={'display': 'inline-block'}
-                ),
-                dcc.Graph(id="line-chart")
-            ]
-        )
-        return obj
+    # else:
+    #     obj = dbc.Card(
+    #         [dbc.CardHeader("Overview"),
+    #          dbc.CardBody(
+    #              children=[
+    #                  # dcc.Checklist(
+    #                  #     id="DOF",
+    #                  #     options=[{"label": "# Total Flights", "value": "Total"},
+    #                  #              {"label": "# Delayed Flights", "value": "Delayed"}
+    #                  #              ],
+    #                  #     value=["Total", "Delayed"],
+    #                  #     style={'padding-left':'25%', 'padding-right':'25%'},
+    #                  #     labelStyle={'display': 'inline',"padding": "5px"}
+    #                  # ),
+    #                  dcc.Graph(id="line-chart")
+    #              ]
+    #          )],
+    #
+    #     )
+    #     return obj
 @app.callback(
     Output('line-chart','figure'),
-    [Input('DOF','value'), Input("map","selectedData"),Input('airport_menu','value')],
+    #[Input('DOF','value'), Input("map","selectedData"),Input('airport_menu','value')],
+    [Input("map","selectedData"),Input('airport_menu','value')],
 )
-def update_line_chart(selectedDOF, selectedData, inputData):
-    total_flight = numFlight.groupby("date").sum("count").reset_index()
-    total_delay = delay.groupby("date").sum("delay").reset_index()
+def update_line_chart(selectedData, inputData):
+    total_flight = numFlight.groupby(["date"])["count"].sum().reset_index()
+    total_delay = delay.groupby(["date"])["count"].sum().reset_index()
     fig = go.Figure()
-    if "flights" in selectedDOF:
-        fig.add_trace(go.Scatter(x=total_flight["date"],y=total_flight["count"],name="flight"))
-    if "delay" in selectedDOF:
-        fig.add_trace(go.Scatter(x=total_delay["date"], y=total_delay["delay"],name="delay"))
+    #if "Total" in selectedDOF:
+    figTitle = "Flight Statistics Nationwide"
+    fig.add_trace(go.Scatter(x=total_flight["date"],y=total_flight["count"],name="Total"))
+    #if "Delayed" in selectedDOF:
+        #figTitle = "Flight Statistics Nationwide"
+    fig.add_trace(go.Scatter(x=total_delay["date"], y=total_delay["count"],name="Delayed"))
 
     if inputData:
         airport = inputData
-        print(airport)
-        print((selectedDOF))
-        if selectedDOF == ["flights"]:
-            info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
-            fig = px.line(info, x="date", y="count")
-            return fig
-        elif selectedDOF == ["delay"]:
-            info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
-            fig = px.line(info, x="date", y="delay")
-            return fig
-        elif (selectedDOF == ["flights","delay"] or selectedDOF == ["delay","flights"]):
-            info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
-            info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
-            trace1 = go.Scatter(
+        figTitle = "Flight Statistics in " + airport
+        # if selectedDOF == ["Total"]:
+        #     info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
+        #     fig = px.line(info, x="date", y="count")
+        #     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
+        #     return fig
+        # elif selectedDOF == ["Delayed"]:
+        #     info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
+        #     fig = px.line(info, x="date", y="count")
+        #     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
+        #     return fig
+        # elif (selectedDOF == ["Total","Delayed"] or selectedDOF == ["Delayed","Total"]):
+        info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
+        info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
+        trace1 = go.Scatter(
                 x=info1['date'],
-                y=info1['delay'],
-                name='delay'
-            )
-            trace2 = go.Scatter(
+                y=info1['count'],
+                name='Delayed'
+        )
+        trace2 = go.Scatter(
                 x=info2['date'],
                 y=info2['count'],
-                name='flights'
-            )
+                name='Total',
+        )
 
-            fig = make_subplots()
-            fig.add_trace(trace1)
-            fig.add_trace(trace2)
+        fig = make_subplots()
+        fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
+        fig.add_trace(trace1)
+        fig.add_trace(trace2)
 
             #fig = px.line([info1,info2], x="date", y=["count","delay"])
-            return fig
-        else:
-            return fig
+        return fig
 
     if selectedData and inputData:
         airport = selectedData["points"][0]['hovertext']
-        print(airport)
-        print((selectedDOF))
-        if selectedDOF == ["flights"]:
-            info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
-            fig = px.line(info, x="date", y="count")
-            return fig
-        elif selectedDOF == ["delay"]:
-            info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
-            fig = px.line(info, x="date", y="delay")
-            return fig
-        elif (selectedDOF == ["flights","delay"] or selectedDOF == ["delay","flights"]):
-            info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
-            info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
-            trace1 = go.Scatter(
+        # if selectedDOF == ["flights"]:
+        #     info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
+        #     fig = px.line(info, x="date", y="count")
+        #     return fig
+        # elif selectedDOF == ["delay"]:
+        #     info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
+        #     fig = px.line(info, x="date", y="delay")
+        #     return fig
+        # elif (selectedDOF == ["flights","delay"] or selectedDOF == ["delay","flights"]):
+        info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
+        info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
+        trace1 = go.Scatter(
                 x=info1['date'],
                 y=info1['delay'],
                 name='delay'
-            )
-            trace2 = go.Scatter(
+        )
+        trace2 = go.Scatter(
                 x=info2['date'],
                 y=info2['count'],
                 name='flights'
-            )
+        )
 
-            fig = make_subplots()
-            fig.add_trace(trace1)
-            fig.add_trace(trace2)
+        fig = make_subplots()
+        fig.add_trace(trace1)
+        fig.add_trace(trace2)
 
             #fig = px.line([info1,info2], x="date", y=["count","delay"])
-            return fig
-        else:
-            return fig
+        return fig
+        # else:
+        #     return fig
+    fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
     return fig
 
 if __name__ == '__main__':
