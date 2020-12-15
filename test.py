@@ -23,6 +23,9 @@ on_time_list = pd.read_json("data/on_time_list.json")
 numFlight = pd.read_csv("data/total.csv")
 delay = pd.read_csv("data/delay.csv")
 overview_destination = pd.read_json("data/overview_destinations.json")
+detail_delay_information = pd.read_json("data/detail_delay_information.json")
+
+
 
 
 location_dic = {}
@@ -100,7 +103,7 @@ app.layout = html.Div(children=[
                                     ),
                             ]
                        ),
-                        dcc.Graph(id="map"),
+                        dcc.Graph(id="map",clear_on_unhover=True),
                         ])
                     ])
                      ]),
@@ -244,6 +247,7 @@ def update_click_map(selectedData,date,hoverData,inputData):
                     showlegend=False
                 )
             )
+        # fig.update_layout(clear_on_unhover=True)
         return fig
     else:
         return fig
@@ -264,6 +268,18 @@ def update_infobox(selectedData,date, inputData):
 
         #没有选定数据的时候就显示雷达图
         if not inputData:
+            fig = px.sunburst(data,path=["TIME_SEGMENT","DEPARTURE_TIME"],
+                                    values="TOTAL", color_continuous_scale="RdBu",
+                                    color="ON_TIME_RATE",
+                                    color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
+
+                                    )
+            # fig2 = go.Figure(go.Sunburst(
+            #     labels=fig['data'][0]['labels'].tolist(),
+            #     parents=fig['data'][0]['parents'].tolist(),
+            #     values=fig['data'][0]['values'].tolist(),
+            #     sort=True
+            # ))
             obj = dcc.Graph(
                 # figure = px.line_polar(
                 #     data,
@@ -271,12 +287,14 @@ def update_infobox(selectedData,date, inputData):
                 #     theta="DEPARTURE_TIME",
                 #     line_close=True
                 # )
-                figure= px.sunburst(data,path=["TIME_SEGMENT","DEPARTURE_TIME"],
-                                    values="TOTAL", color_continuous_scale="RdBu",
-                                    color="ON_TIME_RATE",
-                                    color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
+                # figure= px.sunburst(data,path=["TIME_SEGMENT","DEPARTURE_TIME"],
+                #                     values="TOTAL", color_continuous_scale="RdBu",
+                #                     color="ON_TIME_RATE",
+                #                     color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
+                #
+                #                     )
+                figure=fig
 
-                                    )
             )
             return obj
 
@@ -284,7 +302,7 @@ def update_infobox(selectedData,date, inputData):
         #有选定数据就显示卡片
         elif inputData:
             point_dict = selectedData["points"][0] if selectedData else None
-            airport = point_dict['hovertext'] if point_dict else inputData
+            airport = inputData if inputData else point_dict["hovertext"]
             infos = airports_info[airports_info["IATA_CODE"]==airport]
             detailed_infos = airports[(airports["ORIGIN_AIRPORT"] == airport) & (airports["DATE"] == timestamp)]
             destinations = detailed_infos["DESTINATION_AIRPORT"].tolist()[0] if detailed_infos["DESTINATION_AIRPORT"].tolist() else []
@@ -293,88 +311,120 @@ def update_infobox(selectedData,date, inputData):
             df["destination"] = destinations
             df["nums"] = destinations_num
             df = df.nlargest(5,"nums")
-            df["nums_ratio"] = df["nums"].map(lambda x: x * 100 / sum(destinations_num))
-            # table_header = [
-            #     html.Thead(html.Tr([html.Th("Destination"),html.Th("Flights_sum")]))
-            # ]
-            # table_body = [html.Tbody([html.Tr([html.Td(row["destination"]),html.Td(row["nums"])]) for idx, row in df.iterrows()])]
             total_flights = sum(destinations_num)
 
-            def update_num_ratio(*args):
+            data = []
+            name_list = ["on_time","0<=delay<30","30<=delay<60","delay>=60"]
 
-                y_nums_ratio = list(df["nums_ratio"])
-                x = list(df["destination"])
-                y_nums_ratio.reverse()
-                x.reverse()
+            for i in range(0, 4):
+                y = []
+                for des in df["destination"]:
+                    tmp = detail_delay_information[(detail_delay_information["ORIGIN_AIRPORT"]==airport) &
+                                                   (detail_delay_information["DESTINATION_AIRPORT"]==des) &
+                                                   (detail_delay_information["DELAY_SEG"]==float(i)) &
+                                                   (detail_delay_information["DATE"]==timestamp)
+                                                   ]
+                    tmplist = tmp["DEPARTURE_DELAY"].tolist()
+                    y.append(len(tmplist[0]) if tmplist else 0)
+                data.append(go.Bar(
+                    name=name_list[i],
+                    y=df["destination"],
+                    x=y,
+                    orientation = 'h'
+                ))
 
-                # Creating two subplots
-                fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], shared_xaxes=True,
-                                    shared_yaxes=False, vertical_spacing=0.01)
+            fig = go.Figure(data=data)
+            fig.update_layout(barmode='stack')
 
-                fig.append_trace(go.Bar(
-                    x=y_nums_ratio,
-                    y=x,
-                    marker=dict(
-                        color='rgba(67, 56, 209, 0.7)',
-                        line=dict(
-                            color='rgba(67, 56, 209, 1.0)',
-                            width=1),
-                    ),
-                    name='Ratio of flights to hottest destination',
-                    orientation='h',
-                    width=0.3
-                ), 1, 1)
 
-                fig.update_layout(
-                    title='Ratio of flights to hottest destination and delay time distribution',
-                    yaxis=dict(
-                        showgrid=False,
-                        showline=False,
-                        showticklabels=True,
-                        domain=[0, 0.8],
-                    ),
-                    xaxis=dict(
-                        zeroline=False,
-                        showline=False,
-                        showticklabels=False,
-                        showgrid=True,
-                        domain=[0, 0.22],
-                    ),
-                    showlegend=True,
-                    legend=dict(x=0.029, y=1.038, font_size=10),
-                    margin=dict(l=30, r=20, t=50, b=70),
-                    paper_bgcolor='rgb(255,255,255)',
-                    plot_bgcolor='rgb(255, 255, 255)',
-                )
+            # df["nums_ratio"] = df["nums"].map(lambda x: x * 100 / sum(destinations_num))
+            # # table_header = [
+            # #     html.Thead(html.Tr([html.Th("Destination"),html.Th("Flights_sum")]))
+            # # ]
+            # # table_body = [html.Tbody([html.Tr([html.Td(row["destination"]),html.Td(row["nums"])]) for idx, row in df.iterrows()])]
+            #
+            # def update_num_ratio(*args):
+            #
+            #     y_nums_ratio = list(df["nums_ratio"])
+            #     x = list(df["destination"])
+            #     y_nums_ratio.reverse()
+            #     x.reverse()
+            #
+            #     # Creating two subplots
+            #     fig = make_subplots(rows=1, cols=2, specs=[[{}, {}]], shared_xaxes=True,
+            #                         shared_yaxes=False, vertical_spacing=0.01)
+            #
+            #     fig.append_trace(go.Bar(
+            #         x=y_nums_ratio,
+            #         y=x,
+            #         marker=dict(
+            #             color='rgba(67, 56, 209, 0.7)',
+            #             line=dict(
+            #                 color='rgba(67, 56, 209, 1.0)',
+            #                 width=1),
+            #         ),
+            #         name='Ratio of flights to hottest destination',
+            #         orientation='h',
+            #         width=0.3
+            #     ), 1, 1)
+            #
+            #     fig.update_layout(
+            #         title='Ratio of flights to hottest destination and delay time distribution',
+            #         yaxis=dict(
+            #             showgrid=False,
+            #             showline=False,
+            #             showticklabels=True,
+            #             domain=[0, 0.8],
+            #         ),
+            #         xaxis=dict(
+            #             zeroline=False,
+            #             showline=False,
+            #             showticklabels=False,
+            #             showgrid=True,
+            #             domain=[0, 0.22],
+            #         ),
+            #         showlegend=True,
+            #         legend=dict(x=0.029, y=1.038, font_size=10),
+            #         margin=dict(l=30, r=20, t=50, b=70),
+            #         paper_bgcolor='rgb(255,255,255)',
+            #         plot_bgcolor='rgb(255, 255, 255)',
+            #     )
+            #
+            #     annotations = []
+            #
+            #     y_s = np.round(y_nums_ratio, decimals=2)
+            #
+            #     # Adding labels
+            #     for yd, xd in zip(y_s, x):
+            #
+            #         # labeling the bar num ratio
+            #         annotations.append(dict(xref='x1', yref='y1',
+            #                                 y=xd, x=yd + 24,
+            #                                 text=str(yd) + '%',
+            #                                 font=dict(family='Arial', size=12,
+            #                                           color='rgb(67, 56, 209)'),
+            #                                 showarrow=False))
+            #
+            #     fig.update_layout(annotations=annotations)
+            #
+            #     return fig
 
-                annotations = []
-
-                y_s = np.round(y_nums_ratio, decimals=2)
-
-                # Adding labels
-                for yd, xd in zip(y_s, x):
-
-                    # labeling the bar num ratio
-                    annotations.append(dict(xref='x1', yref='y1',
-                                            y=xd, x=yd + 24,
-                                            text=str(yd) + '%',
-                                            font=dict(family='Arial', size=12,
-                                                      color='rgb(67, 56, 209)'),
-                                            showarrow=False))
-
-                fig.update_layout(annotations=annotations)
-
-                return fig
 
 
             obj = dbc.Card(children=[
-                html.H6("Airport Name: {}".format(infos["AIRPORT"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
-                html.H6("City Name: {}".format(infos["CITY"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
-                html.H6("Total Flights of Today: {}".format(total_flights), style={'fontFamily': 'Arial',
-                                                                                   'color':'rgb(54, 76, 117)'}),
+                dbc.Row(
+                    children=[
+                        html.H6("Airport Name: {}".format(infos["AIRPORT"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
+                        html.H6("City Name: {}".format(infos["CITY"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
+                        html.H6("Total Flights of Today: {}".format(total_flights), style={'fontFamily': 'Arial',
+                                                                                   'color':'rgb(54, 76, 117)'}),]
+                ),
+                dbc.Row(children=[
                 #dbc.Table(table_header+table_body,bordered=True)
-                dcc.Graph(figure=update_num_ratio())
-                ]
+                dbc.Col(dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar")),
+                dbc.Col(dcc.Graph(id="scatter"))]
+            ),
+            ]
             )
             return obj
     # else:
@@ -482,6 +532,64 @@ def update_line_chart(selectedData, inputData):
         #     return fig
     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
     return fig
+
+@app.callback(
+    Output("scatter","figure"),
+    Input("stacked_bar","hoverData"),
+    Input('airport_menu','value'),
+    Input('date_menu','value')
+)
+def update_scatter(hoverData,inputData,date):
+    timestamp =pd.to_datetime(date)
+    airport = inputData
+    infos = airports_info[airports_info["IATA_CODE"] == airport]
+    detailed_infos = airports[(airports["ORIGIN_AIRPORT"] == airport) & (airports["DATE"] == timestamp)]
+    destinations = detailed_infos["DESTINATION_AIRPORT"].tolist()[0] if detailed_infos[
+        "DESTINATION_AIRPORT"].tolist() else []
+    destinations_num = detailed_infos["FLIGHT_SUM"].tolist()[0] if detailed_infos["FLIGHT_SUM"].tolist() else []
+    df = pd.DataFrame()
+    df["destination"] = destinations
+    df["nums"] = destinations_num
+    df = df.nlargest(5, "nums")
+    #时间是x轴，delay是y轴，时间是小数形式，我已经做了转化，比如6:30就是6.5小时
+    delays = []
+    times = []
+    for i in range(0, 4):
+        for des in df["destination"]:
+            tmp = detail_delay_information[(detail_delay_information["ORIGIN_AIRPORT"] == airport) &
+                                           (detail_delay_information["DESTINATION_AIRPORT"] == des) &
+                                           (detail_delay_information["DELAY_SEG"] == float(i)) &
+                                           (detail_delay_information["DATE"] == timestamp)
+                                           ]
+            delay_list = tmp["DEPARTURE_DELAY"].tolist()
+            time_list = tmp["DEPARTURE_TIME"].tolist()
+            delays +=delay_list[0] if delay_list else []
+            times +=time_list[0] if time_list else []
+    if not times and not delays:
+        fig = px.line()
+    else:
+        fig = px.scatter(x=times,y=delays)
+
+
+
+
+    #当有hover的时候就只展示选定的延误时间分布
+    if hoverData:
+        point_dict = hoverData["points"][0]
+        curveNumber = point_dict["curveNumber"]
+        des = point_dict["label"]
+        infos = detail_delay_information[(detail_delay_information["ORIGIN_AIRPORT"]==airport) &
+                                     (detail_delay_information["DESTINATION_AIRPORT"]==des) &
+                                     (detail_delay_information["DELAY_SEG"]==curveNumber) &
+                                     (detail_delay_information["DATE"] == timestamp)
+                                      ]
+        x = infos["DEPARTURE_TIME"].tolist()[0]
+        y = infos["DEPARTURE_DELAY"].tolist()[0]
+        fig = px.scatter(x=x,y=y)
+        return fig
+
+    return fig
+
 
 if __name__ == '__main__':
     app.config['suppress_callback_exceptions'] = True

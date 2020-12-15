@@ -3,84 +3,92 @@ import ast
 import pandas as pd
 
 
+def segment_time(x):
+    if 0<x<30:
+        return 1
+    elif 30<=x<60:
+        return 2
+    elif x>=60:
+        return 3
+    elif x<=0:
+        return 0
+
+def transform_the_time(x):
+    hours = x//100
+    minutes= (x%100)/60
+    return hours+minutes
+
+
 airports = pd.read_csv("data/airports.csv")
 flights = pd.read_csv("data/flights.csv",low_memory=False)
 
+
 flights_christmas = flights[(flights["MONTH"]==12) & (flights["DAY"]>=18)]
+flights_christmas["DELAY_SEG"] = flights_christmas["DEPARTURE_DELAY"].map(segment_time)
+flights_christmas["DEPARTURE_TIME"] = flights_christmas["DEPARTURE_TIME"].map(transform_the_time)
 
 
-
-
-#画机场图的数据
-origin_flights_sum = flights_christmas.groupby(["ORIGIN_AIRPORT","DESTINATION_AIRPORT","DAY","MONTH"]).size().reset_index().rename(columns={0:"SIZE"})
-origin_flights_sum_dict = {}
-flights_delay_dict = {}
-
-
-
-
-for idx,row in origin_flights_sum.iterrows():
-    origin_flights_sum_dict[row["ORIGIN_AIRPORT"]+row["DESTINATION_AIRPORT"]+str(row["DAY"])+str(row["MONTH"])] = row["SIZE"]
-    delay_times = flights_christmas[(flights_christmas["ORIGIN_AIRPORT"]==row["ORIGIN_AIRPORT"]) & (flights_christmas["DESTINATION_AIRPORT"]==row["DESTINATION_AIRPORT"]) & (flights_christmas["DAY"]==row["DAY"])]
-    delay_times = delay_times[delay_times["DEPARTURE_DELAY"]>0]
-    delay_times = delay_times[["ORIGIN_AIRPORT","DESTINATION_AIRPORT","DAY","MONTH","DEPARTURE_DELAY","DEPARTURE_TIME"]]
-    less_than_30 = []
-    less_than_60 = []
-    more_than_60 = []
-    for index,Row in delay_times.iterrows():
-        if Row["DEPARTURE_DELAY"] <= 30:
-            less_than_30.append((Row["DEPARTURE_DELAY"],Row["DEPARTURE_TIME"]))
-        elif 30<Row["DEPARTURE_DELAY"]<=60:
-            less_than_60.append((Row["DEPARTURE_DELAY"],Row["DEPARTURE_TIME"]))
-        else:
-            more_than_60.append((Row["DEPARTURE_DELAY"], Row["DEPARTURE_TIME"]))
-    flights_delay_dict[Row["ORIGIN_AIRPORT"]+Row["DESTINATION_AIRPORT"]+str(Row["DAY"])+str(Row["MONTH"])+"first_seg"] =  less_than_30
-    flights_delay_dict[Row["ORIGIN_AIRPORT"] + Row["DESTINATION_AIRPORT"] + str(Row["DAY"]) + str(
-        Row["MONTH"]) + "second_seg"] = less_than_60
-    flights_delay_dict[Row["ORIGIN_AIRPORT"] + Row["DESTINATION_AIRPORT"] + str(Row["DAY"]) + str(
-        Row["MONTH"]) + "third_seg"] = more_than_60
-
-
-
-origin_destinations = flights_christmas.groupby(["ORIGIN_AIRPORT","DAY","MONTH"])["DESTINATION_AIRPORT"].apply(set).reset_index()
-
-flights_sum_list = []
-first_segment = []
-second_segment = []
-third_segment = []
-for idx,row in origin_destinations.iterrows():
-    tmp_list=[]
-    tmp_first_segment = []
-    tmp_second_segment = []
-    tmp_third_segment = []
-    for des in row["DESTINATION_AIRPORT"]:
-        tmp_list.append(origin_flights_sum_dict[row["ORIGIN_AIRPORT"]+des+str(row["DAY"])+str(row["MONTH"])])
-        first_segment.append(flights_delay_dict[row["ORIGIN_AIRPORT"]+des+str(row["DAY"])+str(row["MONTH"])+"first_seg"])
-        tmp_second_segment.append(
-            flights_delay_dict[row["ORIGIN_AIRPORT"] + des + str(row["DAY"]) + str(row["MONTH"]) + "second_seg"])
-        tmp_third_segment.append(
-            flights_delay_dict[row["ORIGIN_AIRPORT"] + des + str(row["DAY"]) + str(row["MONTH"]) + "third_seg"])
-    flights_sum_list.append(tmp_list)
-    first_segment.append(tmp_first_segment)
-    second_segment.append(tmp_second_segment)
-    third_segment.append(tmp_third_segment)
-
-origin_destinations["FLIGHT_SUM"] = flights_sum_list
-origin_destinations["FIRST_SEG"] = first_segment
-origin_destinations["SECOND_SEG"] = second_segment
-origin_destinations["THIRD_SEG"] = third_segment
+tmp = flights_christmas.groupby(["ORIGIN_AIRPORT","DAY","MONTH","DESTINATION_AIRPORT","DELAY_SEG"])["DEPARTURE_TIME"].apply(list).reset_index()
+tmp2 = flights_christmas.groupby(["ORIGIN_AIRPORT","DAY","MONTH","DESTINATION_AIRPORT","DELAY_SEG"])["DEPARTURE_DELAY"].apply(list).reset_index()
+tmp = pd.merge(tmp,tmp2,on=["ORIGIN_AIRPORT","DAY","MONTH","DESTINATION_AIRPORT","DELAY_SEG"])
 df = pd.DataFrame({
-    'year': [2015]*len(origin_destinations["MONTH"]),
-    'month':origin_destinations["MONTH"],
-    "day": origin_destinations["DAY"]
+    'year': [2015]*len(tmp["MONTH"]),
+    'month':tmp["MONTH"],
+    "day": tmp["DAY"]
 })
 
 df = pd.to_datetime(df)
-origin_destinations["DATE"] = df
-origin_destinations = origin_destinations[["ORIGIN_AIRPORT","DATE","DESTINATION_AIRPORT","FLIGHT_SUM","FIRST_SEG","SECOND_SEG","THIRD_SEG"]]
+tmp["DATE"] = df
 
-origin_destinations.to_json("data/processed_airports.json")
-print(origin_destinations)
+tmp.to_json("data/detail_delay_information.json")
+print(tmp)
+
+
+#画机场图的数据
+# origin_flights_sum = flights_christmas.groupby(["ORIGIN_AIRPORT","DESTINATION_AIRPORT","DAY","MONTH"]).size().reset_index().rename(columns={0:"SIZE"})
+# origin_flights_sum_dict = {}
+#
+#
+#
+#
+#
+# for idx,row in origin_flights_sum.iterrows():
+#     origin_flights_sum_dict[row["ORIGIN_AIRPORT"]+row["DESTINATION_AIRPORT"]+str(row["DAY"])+str(row["MONTH"])] = row["SIZE"]
+#
+#
+# origin_destinations = flights_christmas.groupby(["ORIGIN_AIRPORT","DAY","MONTH"])["DESTINATION_AIRPORT"].apply(set).reset_index()
+# flights_sum_list = []
+# for idx,row in origin_destinations.iterrows():
+#     tmp_list=[]
+#     tmp_first_segment = []
+#     tmp_second_segment = []
+#     tmp_third_segment = []
+#     for des in row["DESTINATION_AIRPORT"]:
+#         tmp_list.append(origin_flights_sum_dict[row["ORIGIN_AIRPORT"]+des+str(row["DAY"])+str(row["MONTH"])])
+#
+#         # flights_delay_dict[Row["ORIGIN_AIRPORT"] + Row["DESTINATION_AIRPORT"] + str(Row["DAY"]) + str(
+#         #     Row["MONTH"]) + "first_seg"] = less_than_30
+#         # flights_delay_dict[Row["ORIGIN_AIRPORT"] + Row["DESTINATION_AIRPORT"] + str(Row["DAY"]) + str(
+#         #     Row["MONTH"]) + "second_seg"] = less_than_60
+#         # flights_delay_dict[Row["ORIGIN_AIRPORT"] + Row["DESTINATION_AIRPORT"] + str(Row["DAY"]) + str(
+#         #     Row["MONTH"]) + "third_seg"] = more_than_60
+#
+#     flights_sum_list.append(tmp_list)
+#
+# origin_destinations["FLIGHT_SUM"] = flights_sum_list
+#
+# df = pd.DataFrame({
+#     'year': [2015]*len(origin_destinations["MONTH"]),
+#     'month':origin_destinations["MONTH"],
+#     "day": origin_destinations["DAY"]
+# })
+#
+# df = pd.to_datetime(df)
+# origin_destinations["DATE"] = df
+# origin_destinations = origin_destinations[["ORIGIN_AIRPORT","DATE","DESTINATION_AIRPORT","FLIGHT_SUM"]]
+#
+# origin_destinations.to_json("data/processed_airports.json")
+# print(origin_destinations)
 #
 #
 # #画雷达图的数据
