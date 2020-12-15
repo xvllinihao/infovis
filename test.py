@@ -45,37 +45,48 @@ tab1_content = dbc.Card(
                      #     style={'padding-left':'25%', 'padding-right':'25%'},
                      #     labelStyle={'display': 'inline',"padding": "5px"}
                      # ),
-                     dcc.Graph(id="line-chart")
+                     dcc.Graph(id="line-chart", style={"width":"100%","height":"100%"},
+                               config={
+                                   'displayModeBar': False,
+                                   'displaylogo': False,
+                                   'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
+                                                              'hoverClosestCartesian', 'toggleSpikelines']
+                               },
+                               )
                  ]
              )],
+            style={"width":"47.5rem", "height":"33rem"},
         )
-tab2_content = dbc.Card(children=[
+tab2_content = dbc.Card(outline=False,children=[
+    dbc.CardBody(
     dbc.Row(children=[
                 dbc.Col(
                     children=[
                     dbc.Row(children=[
                         dbc.Col(
+                        style={'padding-left':'2%', 'padding-right':'3%', 'padding-top':'0%'},
+                        children=[
                         dcc.Dropdown(
                             id='date_menu',
                             options=[{'label': pd.to_datetime(timestamp).strftime('%Y.%m.%d'), 'value': timestamp} for
                                      timestamp in airports["DATE"].unique()],
                             #placeholder="select a date to find detailed information"
                             value=airports["DATE"].unique()[0],
-                        ),width=8
+                        )],width=8
                         ),
                     ]
                     ),
                     dbc.Col(
                             id='info_box'
                     ), ]),
-            ])
-])
+            ]))
+    ],style={"width":"47.5rem", "height":"33rem"},)
 tab_height="1vh"
 tabs = dbc.Tabs(
-    #style={"padding-left":"5px"},
+    #style={"position":"relative", "left":"200px"},
     children=[
-    dbc.Tab(tab1_content, label="Overview"),
-    dbc.Tab(tab2_content, label="More Info"),])
+    dbc.Tab(tab1_content, label="Overview", tab_style={"height":"50px", "background-color":"white"},label_style={"height":"50px","background-color":"#f7f7f7"}),
+    dbc.Tab(tab2_content, label="More Info", tab_style={"height":"50px", "background-color":"white"},label_style={"height":"50px","background-color":"#f7f7f7"}),])
 
 app.title = "Traveling in Christmas"
 app.layout = html.Div(children=[
@@ -87,7 +98,7 @@ app.layout = html.Div(children=[
                     style={'padding-left':'3%', 'padding-right':'3%', 'padding-top':'1%'},
                     children=[
                     dbc.Card(
-                        style={"height":"591px"},
+                        style={"width":"35rem"},
                         children=[
                         dbc.CardHeader("Map"),
                         dbc.CardBody(
@@ -103,12 +114,19 @@ app.layout = html.Div(children=[
                                     ),
                             ]
                        ),
-                        dcc.Graph(id="map",clear_on_unhover=True),
+                        dcc.Graph(id="map",clear_on_unhover=True,style={"width":"100%", "height":"100%"},
+                                  config={
+                                      'displayModeBar': False,
+                                      'displaylogo': False,
+                                      'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
+                                                                 'hoverClosestCartesian', 'toggleSpikelines']
+                                  },
+                                  ),
                         ])
                     ])
                      ]),
                 dbc.Col(
-                    style={'padding-left':'1%', 'padding-right':'3%', 'padding-top':'1%', "height":"591px"},
+                    style={'padding-left':'1%', 'padding-right':'3%', 'padding-top':'1%', "position":"relative", "right":"115px", "width":"100px"},
                     children=[tabs]
                 )
             ]
@@ -148,10 +166,14 @@ def update_click_map(selectedData,date,hoverData,inputData):
         scope="usa",
         lat=airports_info["LATITUDE"],
         lon=airports_info["LONGITUDE"],
-        hover_name=airports_info["IATA_CODE"],)
+        hover_name=airports_info["IATA_CODE"],
+        )
 
     fig.update_layout(clickmode="event+select")
     fig.update_layout(hovermode="closest")
+    fig.update_layout(
+        margin=dict(l=5, r=0, t=20, b=20),
+    )
     if inputData:
         origin_lon = location_dic[inputData]['lon']
         origin_lat = location_dic[inputData]['lat']
@@ -172,6 +194,9 @@ def update_click_map(selectedData,date,hoverData,inputData):
         )
 
         fig.update_layout(clickmode="event+select")
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=20, b=20),
+        )
 
         for des in destinations:
             fig.add_trace(
@@ -210,6 +235,9 @@ def update_click_map(selectedData,date,hoverData,inputData):
         )
 
         fig.update_layout(clickmode="event+select")
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=20, b=20),
+        )
 
         for des in destinations:
             fig.add_trace(
@@ -271,7 +299,7 @@ def update_infobox(selectedData,date, inputData):
             fig = px.sunburst(data,path=["TIME_SEGMENT","DEPARTURE_TIME"],
                                     values="TOTAL", color_continuous_scale="RdBu",
                                     color="ON_TIME_RATE",
-                                    color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
+                                    color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"]),
 
                                     )
             # fig2 = go.Figure(go.Sunburst(
@@ -280,6 +308,9 @@ def update_infobox(selectedData,date, inputData):
             #     values=fig['data'][0]['values'].tolist(),
             #     sort=True
             # ))
+            fig.update_layout(
+                margin=dict(l=0, r=0, t=25, b=20),
+            )
             obj = dcc.Graph(
                 # figure = px.line_polar(
                 #     data,
@@ -293,8 +324,14 @@ def update_infobox(selectedData,date, inputData):
                 #                     color_continuous_midpoint=np.average(data["ON_TIME_RATE"],weights=data["TOTAL"])
                 #
                 #                     )
-                figure=fig
-
+                figure=fig,
+                style={"width": "100%", "height": "100%", "position":"relative"},
+                config = {
+                         'displayModeBar': False,
+                         'displaylogo': False,
+                         'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
+                                                    'hoverClosestCartesian', 'toggleSpikelines']
+                     },
             )
             return obj
 
@@ -314,7 +351,7 @@ def update_infobox(selectedData,date, inputData):
             total_flights = sum(destinations_num)
 
             data = []
-            name_list = ["on_time","0<=delay<30","30<=delay<60","delay>=60"]
+            name_list = ["on time","0≤delay<30","30≤delay<60","delay≥60"]
 
             for i in range(0, 4):
                 y = []
@@ -335,7 +372,19 @@ def update_infobox(selectedData,date, inputData):
 
             fig = go.Figure(data=data)
             fig.update_layout(barmode='stack')
-
+            fig.update_layout(
+                margin=dict(l=8, r=0, t=20, b=20),
+                autosize=False,
+                width=350,
+                height=300,
+            )
+            fig.update_layout(legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ))
 
             # df["nums_ratio"] = df["nums"].map(lambda x: x * 100 / sum(destinations_num))
             # # table_header = [
@@ -411,18 +460,36 @@ def update_infobox(selectedData,date, inputData):
 
 
 
-            obj = dbc.Card(children=[
+            obj = dbc.Row(
+                children=[
                 dbc.Row(
+                    style={'padding-left': '3%', 'padding-right': '3%', 'padding-top': '1%', "position": "relative"},
                     children=[
-                        html.H6("Airport Name: {}".format(infos["AIRPORT"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
-                        html.H6("City Name: {}".format(infos["CITY"].values[0]), style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'}),
-                        html.H6("Total Flights of Today: {}".format(total_flights), style={'fontFamily': 'Arial',
-                                                                                   'color':'rgb(54, 76, 117)'}),]
+                        html.P(["Airport Name: {}\n".format(infos["AIRPORT"].values[0]), html.Br(), "City Name: {}\n".format(infos["CITY"].values[0]),
+                                html.Br(), "Total Flights of Today: {}\n".format(total_flights)], style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'})]
                 ),
-                dbc.Row(children=[
+                dbc.Row(
+                    #style={"width": "100%", "height": "100%", "position": "relative"},
+                    children=[
                 #dbc.Table(table_header+table_body,bordered=True)
-                dbc.Col(dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar")),
-                dbc.Col(dcc.Graph(id="scatter"))]
+                dbc.Col([dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar",
+                        config = {
+                         'displayModeBar': False,
+                         'displaylogo': False,
+                         'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
+                                                    'hoverClosestCartesian', 'toggleSpikelines']
+                     },)],style={'padding-left': '3%', 'padding-right': '0%', 'padding-top': '1%', "position": "relative"},
+                        width={"size":410}),
+                dbc.Col(
+                    [dcc.Graph(id="scatter",
+                               style={"position": "relative", "right": "0px","display": "block",},
+                        config = {
+                         'displayModeBar': False,
+                         'displaylogo': False,
+                         'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
+                                                    'hoverClosestCartesian', 'toggleSpikelines']
+                     },)],style={'padding-left': '3%', 'padding-right': '0%', 'padding-top': '5.6%', "position": "relative", "right":"0px"},
+                    width={"size":270})]
             ),
             ]
             )
@@ -586,8 +653,19 @@ def update_scatter(hoverData,inputData,date):
         x = infos["DEPARTURE_TIME"].tolist()[0]
         y = infos["DEPARTURE_DELAY"].tolist()[0]
         fig = px.scatter(x=x,y=y)
+        fig.update_layout(
+            margin=dict(l=0, r=0, t=20, b=20),
+            autosize=False,
+            width=315,
+            height=290,
+        )
         return fig
-
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=20, b=20),
+        autosize=False,
+        width=315,
+        height=290,
+    )
     return fig
 
 
