@@ -4,8 +4,8 @@ from collections import Counter, defaultdict
 import pandas as pd
 import numpy as np
 
-airlines = pd.read_csv("data/airlines.csv")
-airports = pd.read_csv("data/airports.csv")
+airlines = pd.read_csv("../data/airlines.csv")
+airports = pd.read_csv("../data/airports.csv")
 flights = pd.read_csv("data/flights.csv",low_memory=False)
 
 flights_christmas = flights[(flights["DEPARTURE_DELAY"].notnull() | flights["ARRIVAL_DELAY"].notnull()) & (flights["MONTH"]==12) & (flights["DAY"]>=18)]

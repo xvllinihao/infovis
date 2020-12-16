@@ -1,7 +1,7 @@
 import pandas as pd
 
-airlines = pd.read_csv("data/airlines.csv")
-airports = pd.read_csv("data/airports.csv")
+airlines = pd.read_csv("../data/airlines.csv")
+airports = pd.read_csv("../data/airports.csv")
 flights = pd.read_csv("data/flights.csv",low_memory=False)
 
 flights_christmas = flights[(flights["MONTH"]==12) & (flights["DAY"]>=18)]

@@ -1,8 +1,8 @@
 import pandas as pd
 
 
-df_aircode1 = pd.read_csv('data/L_AIRPORT.csv')
-df_aircode2 = pd.read_csv('data/L_AIRPORT_ID.csv')
+df_aircode1 = pd.read_csv('../data/L_AIRPORT.csv')
+df_aircode2 = pd.read_csv('../data/L_AIRPORT_ID.csv')
 
 df_aircode1 = df_aircode1.reset_index()
 df_aircode2 = df_aircode2.reset_index()

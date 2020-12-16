@@ -12,14 +12,14 @@ import pandas as pd
 import plotly.express as px
 from scipy.stats import percentileofscore
 
-airlines = pd.read_csv("data/airlines.csv")
-airports = pd.read_csv("data/airports.csv")
-delay_flights = pd.read_json("data/delay_flights.json")
-arrival_delays = pd.read_json("data/arrival_delay_per_day.json")
-departure_delays = pd.read_json("data/departure_delay_per_day.json")
-origin = pd.read_json("data/origin.json")
-destination = pd.read_json("data/destination.json")
-flights_per_day = pd.read_json("data/flights_per_day.json")
+airlines = pd.read_csv("../data/airlines.csv")
+airports = pd.read_csv("../data/airports.csv")
+delay_flights = pd.read_json("../data/delay_flights.json")
+arrival_delays = pd.read_json("../data/arrival_delay_per_day.json")
+departure_delays = pd.read_json("../data/departure_delay_per_day.json")
+origin = pd.read_json("../data/origin.json")
+destination = pd.read_json("../data/destination.json")
+flights_per_day = pd.read_json("../data/flights_per_day.json")
 
 
 # bin the delay time into small delay and large delay
@@ -33,8 +33,8 @@ def delay_binning(df, flag_string):
     return df
 
 
-px.set_mapbox_access_token(open("data/.mapbox_token").read())
-token = open("data/.mapbox_token").read()
+px.set_mapbox_access_token(open("../data/.mapbox_token").read())
+token = open("../data/.mapbox_token").read()
 
 city_dic = {}
 airport_name_dic = {}

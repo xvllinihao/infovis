@@ -19,7 +19,7 @@ def transform_the_time(x):
     return hours+minutes
 
 
-airports = pd.read_csv("data/airports.csv")
+airports = pd.read_csv("../data/airports.csv")
 flights = pd.read_csv("data/flights.csv",low_memory=False)
 
 
