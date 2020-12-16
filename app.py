@@ -1,17 +1,13 @@
-import time
-
 import dash
 import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
-import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
-from dash import callback_context
-from dash.dependencies import Output, Input, State
+import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
+from dash.dependencies import Output, Input
 from plotly.subplots import make_subplots
-from datetime import datetime
 
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 
@@ -38,15 +34,6 @@ tab1_content = dbc.Card(
             [
              dbc.CardBody(
                  children=[
-                     # dcc.Checklist(
-                     #     id="DOF",
-                     #     options=[{"label": "# Total Flights", "value": "Total"},
-                     #              {"label": "# Delayed Flights", "value": "Delayed"}
-                     #              ],
-                     #     value=["Total", "Delayed"],
-                     #     style={'padding-left':'25%', 'padding-right':'25%'},
-                     #     labelStyle={'display': 'inline',"padding": "5px"}
-                     # ),
                      dcc.Graph(id="line-chart", style={"width":"100%","height":"100%"},
                                config={
                                    'displayModeBar': False,
@@ -72,7 +59,6 @@ tab2_content = dbc.Card(outline=False,children=[
                             id='date_menu',
                             options=[{'label': pd.to_datetime(timestamp).strftime('%Y.%m.%d'), 'value': timestamp} for
                                      timestamp in airports["DATE"].unique()],
-                            #placeholder="select a date to find detailed information"
                             value=airports["DATE"].unique()[0],
                         )],width=8
                         ),
@@ -85,7 +71,6 @@ tab2_content = dbc.Card(outline=False,children=[
     ],style={"width":"100%", "height":"33rem"},)
 tab_height="1vh"
 tabs = dbc.Tabs(
-    #style={"position":"relative", "left":"200px"},
     children=[
     dbc.Tab(tab1_content, label="Overview", tab_style={"height":"50px", "background-color":"white"},label_style={"height":"50px","background-color":"#f7f7f7"}),
     dbc.Tab(tab2_content, label="More Info", tab_style={"height":"50px", "background-color":"white"},label_style={"height":"50px","background-color":"#f7f7f7"}),])
@@ -401,7 +386,34 @@ def update_infobox(selectedData,date, inputData):
                 # x=0.05,
             ))
 
-
+            default_figure = px.scatter()
+            default_figure.update_layout(
+                template="simple_white",
+                margin=dict(l=0, r=0, t=60, b=5),
+                showlegend=False,
+                xaxis=dict(
+                    title="time per day",
+                    rangemode="tozero",
+                    showline=True,
+                    color="#525252",
+                    showticklabels=True,
+                    showgrid=False,
+                    fixedrange=True,
+                    tickmode="array",
+                    range=[0, 25],
+                    tickvals=(0, 3, 6, 9, 12, 15, 18, 21, 24),
+                    ticktext=('0:00', '3:00', '6:00', '9:00', '12:00', '15:00', "18:00", "21:00", "24:00"),
+                    zeroline=True
+                ),
+                yaxis=dict(
+                    title="delay time",
+                    color="#525252",
+                    showticklabels=True,
+                    showgrid=True,
+                    zeroline=False,
+                    showline=False
+                ),
+            )
             obj = dbc.Row(
                 children=[
                 dbc.Row(
@@ -430,6 +442,7 @@ def update_infobox(selectedData,date, inputData):
                         ),#410
                 dbc.Col(
                     [dcc.Graph(id="scatter",
+                               figure=default_figure,
                                style={"position": "relative", "height": "90%", "width": "100%"},
                         config = {
                          'displayModeBar': False,
@@ -443,26 +456,7 @@ def update_infobox(selectedData,date, inputData):
             ]
             )
             return obj
-    # else:
-    #     obj = dbc.Card(
-    #         [dbc.CardHeader("Overview"),
-    #          dbc.CardBody(
-    #              children=[
-    #                  # dcc.Checklist(
-    #                  #     id="DOF",
-    #                  #     options=[{"label": "# Total Flights", "value": "Total"},
-    #                  #              {"label": "# Delayed Flights", "value": "Delayed"}
-    #                  #              ],
-    #                  #     value=["Total", "Delayed"],
-    #                  #     style={'padding-left':'25%', 'padding-right':'25%'},
-    #                  #     labelStyle={'display': 'inline',"padding": "5px"}
-    #                  # ),
-    #                  dcc.Graph(id="line-chart")
-    #              ]
-    #          )],
-    #
-    #     )
-    #     return obj
+
 @app.callback(
     Output('line-chart','figure'),
     #[Input('DOF','value'), Input("map","selectedData"),Input('airport_menu','value')],
@@ -483,17 +477,6 @@ def update_line_chart(selectedData, inputData):
     if inputData:
         airport = inputData
         figTitle = "Flight Statistics in " + airport
-        # if selectedDOF == ["Total"]:
-        #     info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
-        #     fig = px.line(info, x="date", y="count")
-        #     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
-        #     return fig
-        # elif selectedDOF == ["Delayed"]:
-        #     info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
-        #     fig = px.line(info, x="date", y="count")
-        #     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85)
-        #     return fig
-        # elif (selectedDOF == ["Total","Delayed"] or selectedDOF == ["Delayed","Total"]):
         info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
         info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
         trace1 = go.Scatter(
@@ -521,15 +504,6 @@ def update_line_chart(selectedData, inputData):
 
     if selectedData and inputData:
         airport = selectedData["points"][0]['hovertext']
-        # if selectedDOF == ["flights"]:
-        #     info = numFlight[(numFlight["ORIGIN_AIRPORT"]==airport)]
-        #     fig = px.line(info, x="date", y="count")
-        #     return fig
-        # elif selectedDOF == ["delay"]:
-        #     info = delay[(delay["ORIGIN_AIRPORT"]==airport)]
-        #     fig = px.line(info, x="date", y="delay")
-        #     return fig
-        # elif (selectedDOF == ["flights","delay"] or selectedDOF == ["delay","flights"]):
         info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
         info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
         trace1 = go.Scatter(
@@ -549,10 +523,8 @@ def update_line_chart(selectedData, inputData):
         fig.add_trace(trace1)
         fig.add_trace(trace2)
 
-            #fig = px.line([info1,info2], x="date", y=["count","delay"])
         return fig
-        # else:
-        #     return fig
+
     fig.update_layout(title=figTitle,title_x=0.47,title_y=0.85, template="ggplot2")
     return fig
 
@@ -600,7 +572,10 @@ def update_scatter(hoverData,inputData,date):
             times += time_list[0] if time_list else []
             color_seg += color_list*len(delay_list[0]) if color_list else []
 
-    fig = px.scatter(x=times, y=delays, color=color_seg, color_discrete_map="identity")
+    if not times or not delays:
+        fig = px.scatter()
+    else:
+        fig = px.scatter(x=times, y=delays, color=color_seg, color_discrete_map="identity")
 
 
     fig.update_layout(
