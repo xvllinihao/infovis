@@ -693,7 +693,7 @@ def update_scatter(hoverData,inputData,date):
             margin=dict(l=0, r=0, t=60, b=5),
             showlegend=False,
             xaxis=dict(
-                title="time per day",
+                title="time",
                 rangemode="tozero",
                 showline=True,
                 color="#525252",
@@ -707,7 +707,7 @@ def update_scatter(hoverData,inputData,date):
                 zeroline=True
             ),
             yaxis=dict(
-                title="delay time",
+                title="Delay Length (min)",
                 color="#525252",
                 showticklabels=True,
                 showgrid=True,
