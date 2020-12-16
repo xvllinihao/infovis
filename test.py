@@ -55,7 +55,7 @@ tab1_content = dbc.Card(
                                )
                  ]
              )],
-            style={"width":"47.5rem", "height":"33rem"},
+            style={"width":"100%", "height":"33rem"},
         )
 tab2_content = dbc.Card(outline=False,children=[
     dbc.CardBody(
@@ -80,7 +80,7 @@ tab2_content = dbc.Card(outline=False,children=[
                             id='info_box'
                     ), ]),
             ]))
-    ],style={"width":"47.5rem", "height":"33rem"},)
+    ],style={"width":"100%", "height":"33rem"},)
 tab_height="1vh"
 tabs = dbc.Tabs(
     #style={"position":"relative", "left":"200px"},
@@ -98,7 +98,7 @@ app.layout = html.Div(children=[
                     style={'padding-left':'3%', 'padding-right':'3%', 'padding-top':'1%'},
                     children=[
                     dbc.Card(
-                        style={"width":"35rem"},
+                        style={"width":"100%"},
                         children=[
                         dbc.CardHeader("Map"),
                         dbc.CardBody(
@@ -126,7 +126,7 @@ app.layout = html.Div(children=[
                     ])
                      ]),
                 dbc.Col(
-                    style={'padding-left':'1%', 'padding-right':'3%', 'padding-top':'1%', "position":"relative", "right":"115px", "width":"100px"},
+                    style={'padding-left':'3%', 'padding-right':'3%', 'padding-top':'1%', "position":"relative", "right":"3%", "width":"100%"},
                     children=[tabs]
                 )
             ]
@@ -374,9 +374,9 @@ def update_infobox(selectedData,date, inputData):
             fig.update_layout(barmode='stack')
             fig.update_layout(
                 margin=dict(l=8, r=0, t=20, b=20),
-                autosize=False,
-                width=350,
-                height=300,
+                # autosize=False,
+                # width=700,
+                # height=200,
             )
             fig.update_layout(legend=dict(
                 orientation="h",
@@ -469,27 +469,31 @@ def update_infobox(selectedData,date, inputData):
                                 html.Br(), "Total Flights of Today: {}\n".format(total_flights)], style={'fontFamily': 'Arial', 'color':'rgb(54, 76, 117)'})]
                 ),
                 dbc.Row(
-                    #style={"width": "100%", "height": "100%", "position": "relative"},
+                    style={"width": "100%", "height": "350px", "position": "relative"},
                     children=[
                 #dbc.Table(table_header+table_body,bordered=True)
-                dbc.Col([dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar",
+                dbc.Row([dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar",
+                                   style={
+                                          "position": "relative", "height": "100%", "width": "100%"},
                         config = {
                          'displayModeBar': False,
                          'displaylogo': False,
                          'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
                                                     'hoverClosestCartesian', 'toggleSpikelines']
-                     },)],style={'padding-left': '3%', 'padding-right': '0%', 'padding-top': '1%', "position": "relative"},
-                        width={"size":410}),
-                dbc.Col(
+                     },)],style={'padding-left': '3%', 'padding-right': '0%', "position": "relative","height":"50%","width":"100%"},
+                        #width={"size":"100%"}
+                        ),#410
+                dbc.Row(
                     [dcc.Graph(id="scatter",
-                               style={"position": "relative", "right": "0px","display": "block",},
+                               style={"position": "relative", "height": "100%", "width": "100%"},
                         config = {
                          'displayModeBar': False,
                          'displaylogo': False,
                          'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
                                                     'hoverClosestCartesian', 'toggleSpikelines']
-                     },)],style={'padding-left': '3%', 'padding-right': '0%', 'padding-top': '5.6%', "position": "relative", "right":"0px"},
-                    width={"size":270})]
+                     },)],style={'padding-left': '3%', 'padding-right': '0%', "position": "relative","height":"50%","width":"100%" },
+                    #width={"size":"100%"}
+                )]#270
             ),
             ]
             )
@@ -655,16 +659,16 @@ def update_scatter(hoverData,inputData,date):
         fig = px.scatter(x=x,y=y)
         fig.update_layout(
             margin=dict(l=0, r=0, t=20, b=20),
-            autosize=False,
-            width=315,
-            height=290,
+            # autosize=False,
+            # width=315,
+            # height=290,
         )
         return fig
     fig.update_layout(
         margin=dict(l=0, r=0, t=20, b=20),
-        autosize=False,
-        width=315,
-        height=290,
+        # autosize=False,
+        # width=315,
+        # height=290,
     )
     return fig
 
