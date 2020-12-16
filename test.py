@@ -11,6 +11,7 @@ from dash import callback_context
 from dash.dependencies import Output, Input, State
 import plotly.express as px
 from plotly.subplots import make_subplots
+from datetime import datetime
 
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 
@@ -78,7 +79,7 @@ tab2_content = dbc.Card(outline=False,children=[
                     ]
                     ),
                     dbc.Col(
-                            id='info_box'
+                            id='info_box',style={'padding-left':'1%', 'padding-right':'3%', 'padding-top':'1%'},
                     ), ]),
             ]))
     ],style={"width":"100%", "height":"33rem"},)
@@ -293,6 +294,7 @@ def update_click_map(selectedData,date,hoverData,inputData):
 def update_infobox(selectedData,date, inputData):
     if date:
         timestamp = pd.to_datetime(date)
+        print(timestamp.month)
         data = on_time_list[on_time_list["DATE"]==timestamp]
         #我处理的时候是int型的，会默认转成度数，要换成str才能24等分
         time_list = data["DEPARTURE_TIME"].tolist()
@@ -317,9 +319,10 @@ def update_infobox(selectedData,date, inputData):
             fig.update_layout(
                 margin=dict(l=0, r=0, t=25, b=20),
             )
+            fig.update_layout(title="Departure Delay Number & Length Distribution at {}-{} Nationwide".format(timestamp.month, timestamp.day))
             obj = dcc.Graph(
                 figure=fig,
-                style={"width": "100%", "height": "100%", "position":"relative"},
+                style={"width": "90%", "height": "90%", "position":"relative","padding-top":"2%"},
                 config = {
                          'displayModeBar': False,
                          'displaylogo': False,
@@ -371,7 +374,7 @@ def update_infobox(selectedData,date, inputData):
             fig = go.Figure(data=data)
             fig.update_layout(barmode='stack', template="simple_white")
             fig.update_layout(
-                margin=dict(l=8, r=0, t=20, b=20),
+                margin=dict(l=0, r=0, t=0, b=0),
                 # autosize=False,
                 # width=700,
                 # height=200,
@@ -392,12 +395,10 @@ def update_infobox(selectedData,date, inputData):
             )
             fig.update_layout(legend=dict(
                 orientation="h",
-                yanchor="bottom",
-                y=0.98,
-                xanchor="right",
-                x=0.05,
-
-
+                # yanchor="bottom",
+                # y=0.98,
+                # xanchor="right",
+                # x=0.05,
             ))
 
 
@@ -409,11 +410,14 @@ def update_infobox(selectedData,date, inputData):
                         html.P(["Airport Name: {}\n".format(infos["AIRPORT"].values[0]), html.Br(), "City Name: {}\n".format(infos["CITY"].values[0]),
                                 html.Br(), "Total Flights of Today: {}\n".format(total_flights)], style={'fontFamily': 'Arial', 'color':'#525252'})]
                 ),
+                dbc.Row([html.P(["Departure Delay Length Distribution of Flights From {} To Hottest Destinations".format(airport)],style={"text-align":"center","position":"relative","padding-left":"8%","padding-right":"8%","width":"100%","height":"100%"})]
+                        ,style={"width": "100%",'padding-bottom': '0%',"height":"27px"}
+                        ),
                 dbc.Row(
                     style={"width": "100%", "height": "350px", "position": "relative"},
                     children=[
                 #dbc.Table(table_header+table_body,bordered=True)
-                dbc.Row([dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar",
+                dbc.Col([dcc.Graph(figure=fig,clear_on_unhover=True,id="stacked_bar",
                                    style={
                                           "position": "relative", "height": "100%", "width": "100%"},
                         config = {
@@ -421,18 +425,18 @@ def update_infobox(selectedData,date, inputData):
                          'displaylogo': False,
                          'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
                                                     'hoverClosestCartesian', 'toggleSpikelines']
-                     },)],style={'padding-left': '3%', 'padding-right': '0%', "position": "relative","height":"100%","width":"60%"},
+                     },)],style={'padding-left': '3%', 'padding-right': '0%', "position": "relative","height":"90%","width":"50%"},
                         #width={"size":"100%"}
                         ),#410
-                dbc.Row(
+                dbc.Col(
                     [dcc.Graph(id="scatter",
-                               style={"position": "relative", "height": "100%", "width": "100%"},
+                               style={"position": "relative", "height": "90%", "width": "100%"},
                         config = {
                          'displayModeBar': False,
                          'displaylogo': False,
                          'modeBarButtonsToRemove': ['zoom2d', 'hoverCompareCartesian',
                                                     'hoverClosestCartesian', 'toggleSpikelines']
-                     },)],style={'padding-left': '1%', 'padding-right': '0%', "position": "relative","height":"100%","width":"40%" },
+                     },)],style={'padding-left': '0%', 'padding-right': '0%','padding-bottom': '3%', "position": "relative","height":"100%","width":"50%" },
                     #width={"size":"100%"}
                 )]#270
             ),
@@ -600,10 +604,10 @@ def update_scatter(hoverData,inputData,date):
 
 
     fig.update_layout(
-       margin=dict(l=0, r=0, t=60, b=5),
+       margin=dict(l=0, r=0, t=20, b=5),
          showlegend=False,
             xaxis=dict(
-            title="time per day",
+            title="time",
             rangemode="tozero",
             showline=True,
             color="#525252",
@@ -618,7 +622,7 @@ def update_scatter(hoverData,inputData,date):
 
             ),
         yaxis=dict(
-            title="delay time",
+            title="delay length (min)",
             color="#525252",
             showticklabels=True,
             showgrid=True,
