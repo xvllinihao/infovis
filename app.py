@@ -12,6 +12,8 @@ from plotly.subplots import make_subplots
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = app.server
+
 #read the data
 pd.set_option("max_columns", None)
 airports = pd.read_json("data/processed_airports.json")
