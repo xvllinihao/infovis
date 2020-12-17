@@ -19,7 +19,7 @@ pd.set_option("max_columns", None)
 airports = pd.read_json("data/processed_airports.json")
 airports_info = pd.read_csv("data/airports.csv")
 on_time_list = pd.read_json("data/on_time_list.json")
-numFlight = pd.read_csv("data/total.csv")
+flight_number = pd.read_csv("data/total.csv")
 delay = pd.read_csv("data/delay.csv")
 overview_destination = pd.read_json("data/overview_destinations.json")
 detail_delay_information = pd.read_json("data/detail_delay_information.json")
@@ -28,10 +28,12 @@ detail_delay_information = pd.read_json("data/detail_delay_information.json")
 airports_info["COLOR_MAP"] = "#525252"
 px.colors.sequential.Plasma = ["#fff5f0", "#fee0d2", "#fcbba1", "#a50f15", "#67000d"]
 
+#tranform IATA to latitude and longitude
 location_dic = {}
 for idx, row in airports_info.iterrows():
     location_dic[row["IATA_CODE"]] = {"lat": row["LATITUDE"], "lon": row["LONGITUDE"]}
 
+#Tab content
 tab1_content = dbc.Card(
     [
         dbc.CardBody(
@@ -73,7 +75,6 @@ tab2_content = dbc.Card(outline=False, children=[
                     ), ]),
         ]))
 ], style={"width": "100%", "height": "33rem"}, )
-
 tab_height = "1vh"
 tabs = dbc.Tabs(
     children=[
@@ -82,6 +83,7 @@ tabs = dbc.Tabs(
         dbc.Tab(tab2_content, label="More Info", tab_style={"height": "50px", "background-color": "white"},
                 label_style={"height": "50px", "background-color": "#f7f7f7"}), ])
 
+#layout of our app
 app.title = "Traveling in Christmas"
 app.layout = html.Div(children=[
     dbc.Card(children=[
@@ -154,7 +156,7 @@ def update_airport_menu(selectedData):
 )
 def update_click_map(selectedData, date, hoverData, inputData):
     """
-    单击地图上的点选定要看的机场，双击取消选定，有时候会有bug，后面研究一哈
+    click to select a airport to find the detail information
     :param selectedData:
     :param date:
     :param hoverData:
@@ -326,7 +328,7 @@ def update_infobox(selectedData, date, inputData):
             return obj
 
 
-        # 有选定数据就显示卡片
+        # if we select an airport, show the card
         elif inputData:
             point_dict = selectedData["points"][0] if selectedData else None
             airport = inputData if inputData else point_dict["hovertext"]
@@ -422,6 +424,8 @@ def update_infobox(selectedData, date, inputData):
                     showline=False
                 ),
             )
+
+
             obj = dbc.Row(
                 children=[
                     dbc.Row(
@@ -483,7 +487,7 @@ def update_infobox(selectedData, date, inputData):
     [Input("map", "selectedData"), Input('airport_menu', 'value')],
 )
 def update_line_chart(selectedData, inputData):
-    total_flight = numFlight.groupby(["date"])["count"].sum().reset_index()
+    total_flight = flight_number.groupby(["date"])["count"].sum().reset_index()
     total_delay = delay.groupby(["date"])["count"].sum().reset_index()
     fig = go.Figure()
     # if "Total" in selectedDOF:
@@ -497,7 +501,7 @@ def update_line_chart(selectedData, inputData):
         airport = inputData
         figTitle = "Flight Statistics in " + airport
         info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
-        info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
+        info2 = flight_number[(flight_number["ORIGIN_AIRPORT"] == airport)]
         trace1 = go.Scatter(
             x=info1['date'],
             y=info1['count'],
@@ -524,7 +528,7 @@ def update_line_chart(selectedData, inputData):
     if selectedData and inputData:
         airport = selectedData["points"][0]['hovertext']
         info1 = delay[(delay["ORIGIN_AIRPORT"] == airport)]
-        info2 = numFlight[(numFlight["ORIGIN_AIRPORT"] == airport)]
+        info2 = flight_number[(flight_number["ORIGIN_AIRPORT"] == airport)]
         trace1 = go.Scatter(
             x=info1['date'],
             y=info1['delay'],
